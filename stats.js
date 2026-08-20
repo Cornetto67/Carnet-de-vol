@@ -129,6 +129,12 @@ function renderCompetences() {
 
     machinesGrid.innerHTML = '';
     Object.keys(machinesData).sort().forEach(type => {
+        // Skip rendering a dedicated card if the baseType itself is a simulator
+        if (config) {
+            const m = config.machines.find(x => (x.type||'').trim().toUpperCase() === type);
+            if (m && m.is_simu) return;
+        }
+
         const d = machinesData[type];
         
         const dFlight = d.lastFlight ? calculateDaysDifference(d.lastFlight) : Infinity;
