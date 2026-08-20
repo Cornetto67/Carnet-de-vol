@@ -441,6 +441,13 @@ window.editMachine = function(id) {
                         <strong>Est-ce un Simulateur ?</strong>
                     </label>
                 </div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" id="m_tracked" ${m.tracked !== false ? 'checked' : ''}>
+                        <strong>Qualifié sur ce type (Suivi des compétences)</strong>
+                    </label>
+                    <p style="font-size:0.8rem; color:var(--text-secondary); margin-top:5px; margin-left:25px;">Décochez si vous êtes simplement passager sur ce type d'appareil pour l'exclure du suivi.</p>
+                </div>
                 <div id="simu_options" style="display: ${m.is_simu ? 'block' : 'none'}; background: var(--surface-light); padding: 10px; border-radius: 4px; margin-top: 10px;">
                     <div class="form-group">
                         <label>Type de Simulateur</label>
@@ -479,7 +486,8 @@ window.saveMachine = function(id, isNew) {
         type: document.getElementById('m_type').value.trim().toUpperCase(),
         is_simu: document.getElementById('m_simu').checked,
         simu_type: document.getElementById('m_simu_type').value,
-        simu_for: document.getElementById('m_simu_for').value.trim().toUpperCase()
+        simu_for: document.getElementById('m_simu_for').value.trim().toUpperCase(),
+        tracked: document.getElementById('m_tracked').checked
     };
     
     if (isNew) config.machines.push(m);
@@ -487,6 +495,13 @@ window.saveMachine = function(id, isNew) {
         const idx = config.machines.findIndex(x => x.id === id);
         if (idx !== -1) config.machines[idx] = m;
     }
+    
+    // Apply tracked status to all machines of the same type
+    config.machines.forEach(x => {
+        if ((x.type || '').trim().toUpperCase() === m.type) {
+            x.tracked = m.tracked;
+        }
+    });
     
     saveDbConfig(config);
     document.getElementById('dbModal').remove();

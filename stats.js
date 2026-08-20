@@ -94,6 +94,11 @@ function renderCompetences() {
         // Ignore generic SIMULATEUR for machine competency cards
         if (baseType === 'SIMULATEUR') return;
 
+        // Ignore untracked machines (marked as passenger only)
+        if (config) {
+            const m = config.machines.find(x => (x.type||'').trim().toUpperCase() === type || (x.type||'').trim().toUpperCase() === baseType);
+            if (m && m.tracked === false) return;
+        }
         
         if (!machinesData[baseType]) {
             machinesData[baseType] = { lastFlight: null, lastPanne6: null, lastPanne12: null };
