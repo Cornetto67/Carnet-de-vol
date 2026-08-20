@@ -676,6 +676,19 @@ window.addEventListener('load', () => {
 
 // Auto-learn missing entities from flights
 window.autoLearnFromAllFlights = function(forceAlert = false) {
+    let conf = getDbConfig();
+    let uniqM = {};
+    let keep = [];
+    conf.machines.forEach(m => {
+        let k = (m.type||"").trim().toUpperCase() + "|" + (m.reg||"").trim().toUpperCase() + "|" + (m.num||"").trim().toUpperCase();
+        if(!uniqM[k]) { uniqM[k] = true; keep.push(m); }
+    });
+    if(keep.length < conf.machines.length) {
+        console.log("Deduplicated " + (conf.machines.length - keep.length) + " machines.");
+        conf.machines = keep;
+        saveDbConfig(conf);
+    }
+
     try {
     if (!(typeof allFlightsData !== 'undefined' ? allFlightsData : []) || (typeof allFlightsData !== 'undefined' ? allFlightsData : []).length === 0) return;
     
