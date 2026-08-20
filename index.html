@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#121212">
+    <title>Carnet de Vol</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    <div id="error-display" style="color: red; padding: 10px; background: #fee; display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9999;"></div>
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            const errDiv = document.getElementById('error-display');
+            errDiv.style.display = 'block';
+            errDiv.innerHTML += msg + ' at ' + line + ':' + col + '<br>';
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            const errDiv = document.getElementById('error-display');
+            errDiv.style.display = 'block';
+            errDiv.innerHTML += 'Promise: ' + event.reason + '<br>';
+        });
+    </script>
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>Menu</h2>
+            <button class="close-menu-btn" id="closeMenuBtn">&times;</button>
+        </div>
+        <ul class="nav-links">
+            <li><button class="nav-btn active" data-target="view-saisie">🛫 Accueil (Saisie)</button></li>
+            <li><button class="nav-btn" data-target="view-synthese">📖 Synthèse (Vols)</button></li>
+            <li><button class="nav-btn" data-target="view-competences">🎯 Compétences</button></li>
+            <li><button class="nav-btn" data-target="view-hdv">📈 Heures de vol</button></li>
+            <li><button class="nav-btn" data-target="view-cloture">📝 Clôture & Rapports</button></li>
+            <li><button class="nav-btn" data-target="view-database">🗄️ Bases de données</button></li>
+            <li style="margin-top: 20px;"><button class="nav-btn" data-target="view-settings">⚙️ Paramètres</button></li>
+        </ul>
+        <div class="sync-status sidebar-sync" id="syncStatus">
+            <span class="dot offline"></span>
+            <span class="text">Hors-ligne</span>
+        </div>
+    </nav>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <header class="topbar">
+        <div class="logo">
+            <button class="burger-btn" id="burgerBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <h1>Carnet de Vol</h1>
+        </div>
+    </header>
+
+    <main class="container">
+        
+        <!-- DATALISTS (Suggestions dynamiques) -->
+        <datalist id="role_suggestions"></datalist>
+        <datalist id="pil_suggestions"></datalist>
+        <datalist id="num_suggestions"></datalist>
+        <datalist id="seance_suggestions">
+            <option value="PANNES">
+        </datalist>
+
+        <!-- VUE 1 : SAISIE (Accueil) -->
+        <section id="view-saisie" class="view-section active">
+            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 id="formTitle">Nouveau Vol</h2>
+                <div style="position: relative;">
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+                    <button type="button" class="btn secondary outline" style="padding: 6px 12px; font-size: 0.9rem;">📸 Scanner une page</button>
+                </div>
+            </div>
+            
+            <div id="ocrLoadingOverlay" style="display: none; padding: 20px; text-align: center; background: rgba(76, 175, 80, 0.1); border-radius: var(--radius); margin-bottom: 20px; border: 1px dashed var(--accent-color);">
+                <p>⏳ <strong>Analyse de l'image en cours...</strong></p>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">L'Intelligence Artificielle déchiffre votre carnet. Cela peut prendre 5 à 15 secondes.</p>
+            </div>
+
+            <div class="card form-card">
+                <form id="flightForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="f_date">Date</label>
+                            <input type="date" id="f_date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="f_role">Fonction</label>
+                            <input type="text" id="f_role" list="role_suggestions" placeholder="ex: PIC" required autocomplete="off" style="text-transform: uppercase;">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="f_pil">Pilote (Nom/Prénom)</label>
+                            <input type="text" id="f_pil" list="pil_suggestions" placeholder="Saisir nom pilote" autocomplete="off" style="text-transform: uppercase;">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 0.8;">
+                            <label for="f_num">Immatriculation</label>
+                            <input type="text" id="f_num" list="num_suggestions" placeholder="ex: 4215" required autocomplete="off" style="text-transform: uppercase;">
+                        </div>
+                        <div class="form-group">
+                            <label for="f_aircraft">Indicatif</label>
+                            <input type="text" id="f_aircraft" placeholder="Auto" required readonly style="background: var(--surface-light); text-transform: uppercase;">
+                        </div>
+                        <div class="form-group" style="flex: 0.8;">
+                            <label for="f_type">Type</label>
+                            <input type="text" id="f_type" placeholder="Auto" required readonly style="background: var(--surface-light); text-transform: uppercase;">
+                        </div>
+                    </div>
+                    
+                    <h3 class="form-section-title">Temps de vol (Décimal)</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="f_j">J (Jour)</label>
+                            <input type="number" step="0.1" id="f_j" placeholder="ex: 1.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="f_n">N (Nuit)</label>
+                            <input type="number" step="0.1" id="f_n" placeholder="ex: 0.5">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="f_vsv">dont VSV</label>
+                            <input type="number" step="0.1" id="f_vsv" placeholder="ex: 0.2">
+                        </div>
+                        <div class="form-group">
+                            <label for="f_vtn">dont VTN</label>
+                            <input type="number" step="0.1" id="f_vtn" placeholder="ex: 0.0">
+                        </div>
+                        <div class="form-group">
+                            <label for="f_sil">dont SIL</label>
+                            <input type="number" step="0.1" id="f_sil" placeholder="ex: 0.0">
+                        </div>
+                    </div>
+
+                    <h3 class="form-section-title">Opérations & Divers</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Percées</label>
+                            <button type="button" id="btnOpenPerceeModal" class="btn secondary outline" style="justify-content: flex-start; text-align: left;">
+                                Gérer Percées (0)
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <label for="f_att">ATT</label>
+                            <input type="number" id="f_att" placeholder="Nbr">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="f_seance">Type de séances</label>
+                            <input type="text" id="f_seance" list="seance_suggestions" placeholder="ex: Entraînement" autocomplete="off" style="text-transform: uppercase;">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="f_remarques">Remarques</label>
+                            <input type="text" id="f_remarques" placeholder="Observations">
+                        </div>
+                    </div>
+                    
+                    <div id="customFieldsContainer"></div>
+                    <button type="button" id="addCustomFieldBtn" class="btn secondary outline block" style="margin-top: 10px;">+ Ajouter un champ personnalisé</button>
+
+                    <div class="form-actions" style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                        <button type="submit" id="submitFlightBtn" class="btn primary block">Enregistrer le vol</button>
+                        <div style="display: flex; gap: 10px;">
+                            <button type="button" id="cancelEditBtn" class="btn secondary" style="display:none; flex: 1;">Annuler modification</button>
+                            <button type="button" id="deleteFlightBtn" class="btn secondary outline" style="display:none; flex: 1; border-color: var(--danger-color); color: var(--danger-color);">Supprimer</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- VUE 4 : SETTINGS (Paramètres) -->
+        <section id="view-settings" class="view-section">
+            <div class="section-header">
+                <h2>Paramètres</h2>
+            </div>
+            
+            <div class="card">
+                <h3>Règles des Compétences (Jours)</h3>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">Personnalisez les délais de péremption de vos compétences (en jours).</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="set_pcb">Délai PCB</label>
+                        <input type="number" id="set_pcb" value="60">
+                    </div>
+                    <div class="form-group">
+                        <label for="set_pil">Délai PIL</label>
+                        <input type="number" id="set_pil" value="90">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="set_machine">Délai Machine</label>
+                        <input type="number" id="set_machine" value="180">
+                    </div>
+                    <div class="form-group">
+                        <label for="set_panne6">Pannes 6M</label>
+                        <input type="number" id="set_panne6" value="180">
+                    </div>
+                    <div class="form-group">
+                        <label for="set_panne12">Pannes 1AN</label>
+                        <input type="number" id="set_panne12" value="365">
+                    </div>
+                </div>
+                <button type="button" id="saveRulesBtn" class="btn primary outline block" style="margin-top: 10px;">Enregistrer les règles</button>
+                <p id="rulesStatusMsg" style="color: var(--accent-color); font-size: 0.9rem; margin-top: 10px; display: none;">✅ Règles enregistrées !</p>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <h3>Scanner Intelligent (IA OCR)</h3>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">
+                    Pour analyser les photos de vos anciens carnets et manifestes, l'application utilise l'Intelligence Artificielle Google Gemini. 
+                    Vous devez fournir votre clé secrète d'API (gratuite).
+                </p>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label for="apiKeyInput">Clé API Google Gemini</label>
+                    <input type="password" id="apiKeyInput" placeholder="AIzaSy...">
+                </div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label for="geminiModelSelect">Modèle d'IA utilisé pour l'OCR :</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select id="geminiModelSelect" class="filter-input" style="flex: 1; margin-bottom: 0;">
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                            <option value="gemini-pro-vision">Gemini Pro Vision</option>
+                        </select>
+                        <button class="btn secondary outline" style="padding: 10px;" onclick="fetchGeminiModels()">🔄 Rafraîchir</button>
+                    </div>
+                    <small id="modelHelpText" style="color: var(--text-secondary); display: block; margin-top: 5px;">Cliquez sur Rafraîchir pour lister les modèles autorisés par votre clé.</small>
+                </div>
+                <p style="font-size: 0.85rem; margin-top: 10px;">
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--accent-color);">Obtenir ma clé gratuite ici</a>
+                </p>
+                <button type="button" id="saveSettingsBtn" class="btn primary block" style="margin-top: 15px;">Enregistrer (Clé + Modèle)</button>
+                <p id="settingsStatusMsg" style="color: var(--accent-color); font-size: 0.9rem; margin-top: 10px; display: none;">✅ Clé enregistrée !</p>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <h3>☁️ Sauvegarde Cloud Automatique (GitHub)</h3>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">
+                    Vos vols sont sauvegardés automatiquement et de manière invisible sur un espace cloud privé (GitHub). 
+                    Vous pouvez aussi restaurer vos vols sur un nouveau téléphone.
+                </p>
+                <div class="form-group">
+                    <label for="ghTokenInput">GitHub Personal Access Token</label>
+                    <input type="password" id="ghTokenInput" placeholder="ghp_...">
+                </div>
+                <div class="form-group">
+                    <label for="ghGistIdInput">ID du Gist (Fichier Cloud)</label>
+                    <input type="text" id="ghGistIdInput" placeholder="ex: 8a7b6c5d4e3f2a1...">
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button type="button" id="btnPushSync" class="btn primary outline" style="flex: 1;">⬆️ Forcer Sauvegarde</button>
+                    <button type="button" id="btnPullSync" class="btn secondary outline" style="flex: 1; border-color: var(--accent-color);">⬇️ Restaurer du Cloud</button>
+                </div>
+                <div id="dbVersionsInfo" style="margin-top: 15px; font-size: 0.9rem; color: var(--text-secondary); background: var(--bg-hover); padding: 10px; border-radius: 5px;">
+                    <div>Version locale : <span id="localDbVer">Inconnue</span></div>
+                    <div>Version Cloud : <span id="cloudDbVer">Vérification...</span> <button onclick="checkCloudVersion()" class="btn secondary outline" style="padding: 2px 8px; font-size: 0.7rem; margin-left: 10px;">Actualiser</button></div>
+                </div>
+                <p id="syncStatusMsg" style="font-size: 0.9rem; margin-top: 10px; display: none; font-weight: bold;"></p>
+            </div>
+        
+            <div class="card" style="margin-top: 20px; border-color: var(--danger-color);">
+                <h3 style="color: var(--danger-color);">⚠️ Zone de Danger</h3>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">
+                    Attention, ces actions sont irréversibles. Pensez à faire une sauvegarde Cloud avant !
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button type="button" onclick="resetDbConfig()" class="btn secondary outline" style="border-color: var(--danger-color); color: var(--danger-color);">🗑️ Réinitialiser les Machines & Pilotes</button>
+                    <button type="button" onclick="resetAllFlights()" class="btn secondary outline" style="border-color: var(--danger-color); color: var(--danger-color);">💥 Effacer TOUS les vols</button>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- VUE 2 : SYNTHÈSE (Vols enregistrés) -->
+        <section id="view-synthese" class="view-section">
+            <div class="section-header">
+                <h2>Synthèse des vols</h2>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 5px;">
+                    Cliquez sur une ligne pour modifier le vol.
+                </p>
+            </div>
+            
+            <div class="filters-card card">
+                <div class="filters-grid">
+                    <input type="month" id="filter_date" class="filter-input" placeholder="Mois/Année">
+                    <input type="text" id="filter_type" class="filter-input" list="type_suggestions" placeholder="Type Aéronef" style="text-transform: uppercase;">
+                    <input type="text" id="filter_reg" class="filter-input" list="reg_suggestions" placeholder="Indicatif" style="text-transform: uppercase;">
+                    <input type="text" id="filter_role" class="filter-input" list="role_suggestions" placeholder="Fonction" style="text-transform: uppercase;">
+                    <input type="text" id="filter_pil" class="filter-input" list="pil_suggestions" placeholder="Nom du PIL">
+                </div>
+            </div>
+
+            <div class="table-container card" style="padding: 0; overflow-x: auto;">
+                <table class="flights-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Date</th>
+                            <th>Fonction</th>
+                            <th>Nom PIL</th>
+                            <th>Type Aéronef</th>
+                            <th>Indicatif</th>
+                            <th>J</th>
+                            <th>N</th>
+                            <th>VSV</th>
+                            <th>SIL</th>
+                            <th>VTN</th>
+                            <th>Percée</th>
+                            <th>ATT</th>
+                            <th>Type Séance</th>
+                            <th>Remarques</th>
+                        </tr>
+                    </thead>
+                    <tbody id="flightsTableBody">
+                        <!-- Les vols seront injectés ici -->
+                    </tbody>
+                </table>
+            </div>
+            <p id="emptyStateTable" class="empty-state" style="display:none;">Aucun vol ne correspond à ces critères.</p>
+        </section>
+
+        <!-- VUE 3 : COMPÉTENCES -->
+        <section id="view-competences" class="view-section">
+            <div class="section-header">
+                <h2>Suivi des Compétences</h2>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 5px;">
+                    Cliquez sur une pastille pour afficher la date du dernier vol validant.
+                </p>
+            </div>
+            
+            <h3 class="form-section-title">Environnements</h3>
+            <div class="card" style="padding: 15px;">
+                <div class="environments-grid" id="envGrid">
+                    <!-- Injecté par JS -->
+                </div>
+            </div>
+
+            <h3 class="form-section-title">Machines (Récence & Pannes)</h3>
+            <div id="machinesGrid" class="machines-grid">
+                <!-- Injecté par JS -->
+            </div>
+        </section>
+
+        <!-- VUE 5 : HEURES DE VOL (HDV) -->
+        <section id="view-hdv" class="view-section">
+            <div class="section-header">
+                <h2>Statistiques (HDV)</h2>
+            </div>
+            
+
+
+            <div class="card" style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Bilan Annuel</h3>
+                    <select id="hdvYearSelect" class="filter-input" style="width: auto; margin-bottom: 0; padding: 5px;"></select>
+                </div>
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="annualChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                    <h3>Cumul Carrière</h3>
+                    <div id="careerFiltersMachine" class="filter-group" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;"></div>
+                    <div id="careerFiltersRole" class="filter-group" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px;"></div>
+                </div>
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="careerChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 20px;">
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                    <h3>12 Derniers Mois</h3>
+                    <div id="rollingFiltersMachine" class="filter-group" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;"></div>
+                    <div id="rollingFiltersRole" class="filter-group" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px;"></div>
+                </div>
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="rollingChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- VUE 6 : BASES DE DONNEES -->
+        <section id="view-database" class="view-section">
+            <div class="section-header">
+                <h2>Bases de données</h2>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 5px;">
+                    Gérez vos Machines, Simulateurs, Pilotes et Fonctions.
+                </p>
+            </div>
+            
+            <div id="db-container">
+                <!-- Construit par javascript (database.js) -->
+            </div>
+        </section>
+
+        <!-- VUE 7 : CLOTURE ET RAPPORTS -->
+        <section id="view-cloture" class="view-section">
+            <div class="section-header">
+                <h2>Clôture & Rapports</h2>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 5px;">
+                    Générez vos synthèses mensuelles et annuelles au format PDF.
+                </p>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <h3>Sélection de la période</h3>
+                <div class="form-row" style="margin-top: 15px;">
+                    <div class="form-group">
+                        <label>Type de rapport</label>
+                        <select id="reportTypeSelect" onchange="toggleReportType()">
+                            <option value="month">Mensuel</option>
+                            <option value="year">Annuel</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="reportMonthGroup">
+                        <label>Mois</label>
+                        <select id="reportMonthSelect">
+                            <option value="01">Janvier</option>
+                            <option value="02">Février</option>
+                            <option value="03">Mars</option>
+                            <option value="04">Avril</option>
+                            <option value="05">Mai</option>
+                            <option value="06">Juin</option>
+                            <option value="07">Juillet</option>
+                            <option value="08">Août</option>
+                            <option value="09">Septembre</option>
+                            <option value="10">Octobre</option>
+                            <option value="11">Novembre</option>
+                            <option value="12">Décembre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Année</label>
+                        <select id="reportYearSelect"></select>
+                    </div>
+                    <button class="btn primary block" style="margin-top: 20px;" onclick="generateReport()">Générer l'Aperçu</button>
+            </div>
+
+            <div id="reportPreviewContainer" class="card" style="margin-top: 20px; display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Aperçu du Rapport</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn primary" onclick="exportPdfAndMail()">📥 Télécharger PDF & Préparer Mail</button>
+                    </div>
+                </div>
+                <div id="reportContent" style="background: white; color: black; padding: 20px; border-radius: 4px; overflow-x: auto;">
+                    <!-- Rempli par cloture.js -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Modal Gestion des Percées -->
+        <div id="perceeModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Gestion des Percées</h2>
+                    <button class="close-menu-btn" id="closePerceeModalBtn" style="font-size: 2rem;">&times;</button>
+                </div>
+                
+                <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                    <input type="text" id="newPerceeType" placeholder="Nouveau type (ex: ILS)" style="flex: 1;">
+                    <button type="button" id="addPerceeTypeBtn" class="btn secondary outline">+ Créer</button>
+                </div>
+
+                <div id="perceesList" style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto;">
+                    <!-- Les types de percées seront injectés ici -->
+                </div>
+
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button type="button" id="validatePerceesBtn" class="btn primary block">Valider les percées</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Récapitulatif d'un vol -->
+        <div id="flightSummaryModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Détails du vol</h2>
+                    <button class="close-menu-btn" id="closeSummaryBtn" style="font-size: 2rem;">&times;</button>
+                </div>
+                <div class="summary-grid" id="summaryGrid">
+                    <!-- Rempli par JS -->
+                </div>
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button type="button" id="startEditBtn" class="btn primary block">✏️ Modifier ce vol</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="db.js"></script>
+    <script src="database.js"></script>
+    <script src="app.js"></script>
+    <script src="stats.js"></script>
+    <script src="cloture.js"></script>
+    <script>
+        // Enregistrement du Service Worker pour le mode Hors-Ligne (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker enregistré avec succès.', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Échec de l\'enregistrement du Service Worker', error);
+                    });
+            });
+        }
+    </script>
+
+    <!-- CHATBOT -->
+    <button id="chatbotFab" class="chatbot-fab" title="Ouvrir l'Assistant IA">🤖</button>
+    <div id="chatbotWindow" class="chatbot-window">
+        <div class="chatbot-header">
+            <h3>🤖 Copilote IA</h3>
+            <button id="chatbotClose" class="chatbot-close">&times;</button>
+        </div>
+        <div id="chatbotMessages" class="chatbot-messages">
+            <div class="chat-msg system">L'IA répond à vos questions en lisant votre carnet de vol. Exemple : "Combien d'HDV ai-je fait ce mois-ci ?"</div>
+        </div>
+        <div class="chatbot-input-area">
+            <input type="text" id="chatbotInput" placeholder="Posez une question..." autocomplete="off">
+            <button id="chatbotSendBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+        </div>
+    </div>
+    
+    <script src="chat.js"></script>
+</body>
+</html>
