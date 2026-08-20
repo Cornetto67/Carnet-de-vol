@@ -374,9 +374,7 @@ btnPullSync.addEventListener('click', async () => {
         // Handle Gist Truncation for large files (e.g. many flights)
         if (fileData.truncated || !fileContent) {
             console.log("Fichier trop lourd (tronqué par l'API), récupération via raw_url...");
-            const rawRes = await fetch(fileData.raw_url, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const rawRes = await fetch(fileData.raw_url);
             if (!rawRes.ok) throw new Error("Impossible de télécharger le fichier complet.");
             fileContent = await rawRes.text();
         }
