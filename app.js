@@ -103,7 +103,7 @@ async function checkCloudVersion() {
                 let fileData = data.files["carnet_de_vol_backup.json"];
                 let fileContent = fileData.content;
                 if (fileData.truncated && fileData.raw_url) {
-                    const rawRes = await fetch(fileData.raw_url);
+                    const rawRes = await fetch(fileData.raw_url + '?_t=' + Date.now());
                     if (!rawRes.ok) throw new Error("Impossible de télécharger le fichier complet");
                     fileContent = await rawRes.text();
                 }
@@ -374,7 +374,7 @@ btnPullSync.addEventListener('click', async () => {
         // Handle Gist Truncation for large files (e.g. many flights)
         if (fileData.truncated || !fileContent) {
             console.log("Fichier trop lourd (tronqué par l'API), récupération via raw_url...");
-            const rawRes = await fetch(fileData.raw_url);
+            const rawRes = await fetch(fileData.raw_url + '?_t=' + Date.now());
             if (!rawRes.ok) throw new Error("Impossible de télécharger le fichier complet.");
             fileContent = await rawRes.text();
         }
