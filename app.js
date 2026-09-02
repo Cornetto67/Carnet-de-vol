@@ -731,6 +731,13 @@ flightForm.addEventListener('submit', async (e) => {
         
         has_tac: document.getElementById('f_has_tac').checked,
         has_panne: document.getElementById('f_has_panne').checked,
+        
+        cc_vav: document.getElementById('f_cc_vav').checked,
+        cc_vsv_mono: document.getElementById('f_cc_vsv_mono').checked,
+        cc_vsv_multi: document.getElementById('f_cc_vsv_multi').checked,
+        cc_sil: document.getElementById('f_cc_sil').checked,
+        cc_vtn: document.getElementById('f_cc_vtn').checked,
+
         seance_type: document.getElementById('f_seance').value,
         remarques: document.getElementById('f_remarques').value,
         
@@ -807,6 +814,13 @@ window.editFlightAction = function(id) {
     
     document.getElementById('f_has_tac').checked = flight.has_tac || false;
     document.getElementById('f_has_panne').checked = flight.has_panne || false;
+
+    document.getElementById('f_cc_vav').checked = flight.cc_vav || false;
+    document.getElementById('f_cc_vsv_mono').checked = flight.cc_vsv_mono || false;
+    document.getElementById('f_cc_vsv_multi').checked = flight.cc_vsv_multi || false;
+    document.getElementById('f_cc_sil').checked = flight.cc_sil || false;
+    document.getElementById('f_cc_vtn').checked = flight.cc_vtn || false;
+
     document.getElementById('f_seance').value = flight.seance_type || '';
     document.getElementById('f_remarques').value = flight.remarques || '';
     

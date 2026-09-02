@@ -170,6 +170,16 @@
                             </label>
                         </div>
                     </div>
+                    <h3 class="form-section-title" style="margin-top: 15px; font-size: 0.9rem; color: var(--accent-color);">Contrôles Annuels Validés (CC)</h3>
+                    <div class="form-row" style="margin-bottom: 15px;">
+                        <div class="form-group" style="flex: 1; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 15px;">
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" id="f_cc_vav"><span style="font-size: 0.9rem;">VAV</span></label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" id="f_cc_vsv_mono"><span style="font-size: 0.9rem;">VSV Mono</span></label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" id="f_cc_vsv_multi"><span style="font-size: 0.9rem;">VSV Multi</span></label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" id="f_cc_sil"><span style="font-size: 0.9rem;">SIL</span></label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;"><input type="checkbox" id="f_cc_vtn"><span style="font-size: 0.9rem;">VTN</span></label>
+                        </div>
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="f_seance">Type de séances</label>
@@ -360,6 +370,13 @@
                 <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 5px;">
                     Cliquez sur une pastille pour afficher la date du dernier vol validant.
                 </p>
+            </div>
+            
+            <h3 class="form-section-title">Contrôles Annuels Validés (CC)</h3>
+            <div class="card" style="padding: 15px; margin-bottom: 20px;">
+                <div class="environments-grid" id="ccGrid">
+                    <!-- Injecté par JS -->
+                </div>
             </div>
             
             <h3 class="form-section-title">Environnements</h3>

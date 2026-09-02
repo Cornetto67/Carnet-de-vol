@@ -20,6 +20,52 @@ function renderCompetences() {
     const machinesGrid = document.getElementById('machinesGrid');
     if (!envGrid || !machinesGrid) return;
     
+    // 0. CONTROLES ANNUELS (CC)
+    const ccGrid = document.getElementById('ccGrid');
+    let maxDatesCC = { VAV: null, 'VSV Mono': null, 'VSV Multi': null, SIL: null, VTN: null };
+    
+    allFlightsData.forEach(f => {
+        if (!f.date) return;
+        if (f.cc_vav && (!maxDatesCC.VAV || f.date > maxDatesCC.VAV)) maxDatesCC.VAV = f.date;
+        if (f.cc_vsv_mono && (!maxDatesCC['VSV Mono'] || f.date > maxDatesCC['VSV Mono'])) maxDatesCC['VSV Mono'] = f.date;
+        if (f.cc_vsv_multi && (!maxDatesCC['VSV Multi'] || f.date > maxDatesCC['VSV Multi'])) maxDatesCC['VSV Multi'] = f.date;
+        if (f.cc_sil && (!maxDatesCC.SIL || f.date > maxDatesCC.SIL)) maxDatesCC.SIL = f.date;
+        if (f.cc_vtn && (!maxDatesCC.VTN || f.date > maxDatesCC.VTN)) maxDatesCC.VTN = f.date;
+    });
+
+    if (ccGrid) {
+        ccGrid.innerHTML = '';
+        const ccEnvs = ['VAV', 'VSV Mono', 'VSV Multi', 'SIL', 'VTN'];
+        ccEnvs.forEach(env => {
+            const lastDate = maxDatesCC[env];
+            const days = lastDate ? calculateDaysDifference(lastDate) : Infinity;
+            
+            let statusClass = 'status-gray';
+            let statusText = 'X';
+            let title = 'Non réalisé';
+            
+            if (lastDate) {
+                if (days <= 365) {
+                    statusClass = 'status-green';
+                    statusText = 'OK';
+                    title = formatDate(lastDate);
+                } else {
+                    statusClass = 'status-red';
+                    statusText = 'HC';
+                    title = `Périmé (${formatDate(lastDate)})`;
+                }
+            }
+            
+            const div = document.createElement('div');
+            div.className = 'env-item';
+            div.innerHTML = `
+                <div class="env-name">${env}</div>
+                <div class="env-status status-badge ${statusClass}" title="${title}">${statusText}</div>
+            `;
+            ccGrid.appendChild(div);
+        });
+    }
+
     // 1. ENVIRONNEMENTS
     let maxDates = { VAV: null, TAC: null, VN: null, SIL: null, VTN: null, VSV: null };
     
