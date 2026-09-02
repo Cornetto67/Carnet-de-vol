@@ -234,7 +234,8 @@ saveSettingsBtn.addEventListener('click', () => {
 // Load/Save Rules Settings
 const setPcb = document.getElementById('set_pcb');
 const setPil = document.getElementById('set_pil');
-const setMachine = document.getElementById('set_machine');
+const setMachinePil = document.getElementById('set_machine_pil');
+const setMachineCb = document.getElementById('set_machine_cb');
 const setPanne6 = document.getElementById('set_panne6');
 const setPanne12 = document.getElementById('set_panne12');
 const saveRulesBtn = document.getElementById('saveRulesBtn');
@@ -244,7 +245,8 @@ function getRules() {
     return {
         pcb: parseInt(localStorage.getItem('rule_pcb')) || 60,
         pil: parseInt(localStorage.getItem('rule_pil')) || 90,
-        machine: parseInt(localStorage.getItem('rule_machine')) || 180,
+        machine_pil: parseInt(localStorage.getItem('rule_machine_pil')) || 90,
+        machine_cb: parseInt(localStorage.getItem('rule_machine_cb')) || 180,
         panne6: parseInt(localStorage.getItem('rule_panne6')) || 180,
         panne12: parseInt(localStorage.getItem('rule_panne12')) || 365
     };
@@ -254,7 +256,8 @@ function loadRulesToUI() {
     const rules = getRules();
     setPcb.value = rules.pcb;
     setPil.value = rules.pil;
-    setMachine.value = rules.machine;
+    setMachinePil.value = rules.machine_pil;
+    setMachineCb.value = rules.machine_cb;
     setPanne6.value = rules.panne6;
     setPanne12.value = rules.panne12;
 }
@@ -262,7 +265,8 @@ function loadRulesToUI() {
 saveRulesBtn.addEventListener('click', () => {
     localStorage.setItem('rule_pcb', setPcb.value);
     localStorage.setItem('rule_pil', setPil.value);
-    localStorage.setItem('rule_machine', setMachine.value);
+    localStorage.setItem('rule_machine_pil', setMachinePil.value);
+    localStorage.setItem('rule_machine_cb', setMachineCb.value);
     localStorage.setItem('rule_panne6', setPanne6.value);
     localStorage.setItem('rule_panne12', setPanne12.value);
     rulesStatusMsg.style.display = 'block';

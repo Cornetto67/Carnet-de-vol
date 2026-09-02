@@ -15,7 +15,7 @@ function getCompetenceStatus(days, pcbLimit, pilLimit) {
 }
 
 function renderCompetences() {
-    const rules = typeof getRules === 'function' ? getRules() : { pcb: 60, pil: 90, machine: 180, panne6: 180, panne12: 365 };
+    const rules = typeof getRules === 'function' ? getRules() : { pcb: 60, pil: 90, machine_pil: 90, machine_cb: 180, panne6: 180, panne12: 365 };
     const envGrid = document.getElementById('envGrid');
     const machinesGrid = document.getElementById('machinesGrid');
     if (!envGrid || !machinesGrid) return;
@@ -142,6 +142,13 @@ function renderCompetences() {
         const dPanne6 = d.lastPanne6 ? calculateDaysDifference(d.lastPanne6) : Infinity;
         const dPanne12 = d.lastPanne12 ? calculateDaysDifference(d.lastPanne12) : Infinity;
         
+        const getMachineStatHtml = (dateStr, days, limitPil, limitCb) => {
+            if (!dateStr) return `<span class="status-badge status-gray" title="Non réalisé">X</span>`;
+            if (days <= limitPil) return `<span class="status-badge status-green" title="PIL (${formatDate(dateStr)})">PIL</span>`;
+            if (days <= limitCb) return `<span class="status-badge status-orange" title="CB (${formatDate(dateStr)})">CB</span>`;
+            return `<span class="status-badge status-red" title="Périmé (${formatDate(dateStr)})">HC</span>`;
+        };
+        
         const formatStat = (dateStr, days, limit) => {
             if (!dateStr) return `<span class="status-badge status-gray" title="Non réalisé">X</span>`;
             if (days <= limit) return `<span class="status-badge status-green" title="${formatDate(dateStr)}">OK</span>`;
@@ -153,8 +160,8 @@ function renderCompetences() {
         card.innerHTML = `
             <h4>${type}</h4>
             <div class="machine-stat" onclick="alert('Dernier vol : ${d.lastFlight ? formatDate(d.lastFlight) : 'Aucun'}')">
-                <span>Récence Machine (< ${rules.machine}j)</span>
-                ${formatStat(d.lastFlight, dFlight, rules.machine)}
+                <span>Récence Machine</span>
+                ${getMachineStatHtml(d.lastFlight, dFlight, rules.machine_pil, rules.machine_cb)}
             </div>
             <div class="machine-stat" onclick="alert('Dernière panne : ${d.lastPanne6 ? formatDate(d.lastPanne6) : 'Aucune'}')">
                 <span>Pannes (< ${rules.panne6}j)</span>
