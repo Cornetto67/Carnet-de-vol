@@ -246,7 +246,7 @@ function getRules() {
         pcb: parseInt(localStorage.getItem('rule_pcb')) || 60,
         pil: parseInt(localStorage.getItem('rule_pil')) || 90,
         machine_pil: parseInt(localStorage.getItem('rule_machine_pil')) || 90,
-        machine_cb: parseInt(localStorage.getItem('rule_machine_cb')) || 180,
+        machine_cb: parseInt(localStorage.getItem('rule_machine_cb')) || 60,
         panne6: parseInt(localStorage.getItem('rule_panne6')) || 180,
         panne12: parseInt(localStorage.getItem('rule_panne12')) || 365
     };

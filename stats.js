@@ -15,7 +15,7 @@ function getCompetenceStatus(days, pcbLimit, pilLimit) {
 }
 
 function renderCompetences() {
-    const rules = typeof getRules === 'function' ? getRules() : { pcb: 60, pil: 90, machine_pil: 90, machine_cb: 180, panne6: 180, panne12: 365 };
+    const rules = typeof getRules === 'function' ? getRules() : { pcb: 60, pil: 90, machine_pil: 90, machine_cb: 60, panne6: 180, panne12: 365 };
     const envGrid = document.getElementById('envGrid');
     const machinesGrid = document.getElementById('machinesGrid');
     if (!envGrid || !machinesGrid) return;
@@ -58,10 +58,12 @@ function renderCompetences() {
             
             const div = document.createElement('div');
             div.className = 'env-item';
-            div.innerHTML = `
-                <div class="env-name">${env}</div>
-                <div class="env-status status-badge ${statusClass}" title="${title}">${statusText}</div>
-            `;
+            div.onclick = () => alert(\`Dernier contrôle \${env} : \${lastDate ? formatDate(lastDate) : 'Aucun'}\`);
+            div.style.cursor = 'pointer';
+            div.innerHTML = \`
+                <div class="env-name">\${env}</div>
+                <div class="env-status status-badge \${statusClass}" title="\${title}">\${statusText}</div>
+            \`;
             ccGrid.appendChild(div);
         });
     }
@@ -190,8 +192,8 @@ function renderCompetences() {
         
         const getMachineStatHtml = (dateStr, days, limitPil, limitCb) => {
             if (!dateStr) return `<span class="status-badge status-gray" title="Non réalisé">X</span>`;
-            if (days <= limitPil) return `<span class="status-badge status-green" title="PIL (${formatDate(dateStr)})">PIL</span>`;
-            if (days <= limitCb) return `<span class="status-badge status-orange" title="CB (${formatDate(dateStr)})">CB</span>`;
+            if (days <= limitCb) return `<span class="status-badge status-green" title="CB (${formatDate(dateStr)})">CB</span>`;
+            if (days <= limitPil) return `<span class="status-badge status-orange" title="PIL (${formatDate(dateStr)})">PIL</span>`;
             return `<span class="status-badge status-red" title="Périmé (${formatDate(dateStr)})">HC</span>`;
         };
         
