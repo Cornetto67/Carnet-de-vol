@@ -58,12 +58,12 @@ function renderCompetences() {
             
             const div = document.createElement('div');
             div.className = 'env-item';
-            div.onclick = () => alert(\`Dernier contrôle \${env} : \${lastDate ? formatDate(lastDate) : 'Aucun'}\`);
+            div.onclick = () => alert(`Dernier contrôle ${env} : ${lastDate ? formatDate(lastDate) : 'Aucun'}`);
             div.style.cursor = 'pointer';
-            div.innerHTML = \`
-                <div class="env-name">\${env}</div>
-                <div class="env-status status-badge \${statusClass}" title="\${title}">\${statusText}</div>
-            \`;
+            div.innerHTML = `
+                <div class="env-name">${env}</div>
+                <div class="env-status status-badge ${statusClass}" title="${title}">${statusText}</div>
+            `;
             ccGrid.appendChild(div);
         });
     }
