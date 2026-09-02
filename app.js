@@ -265,8 +265,8 @@ function loadRulesToUI() {
 saveRulesBtn.addEventListener('click', () => {
     localStorage.setItem('rule_pcb', setPcb.value);
     localStorage.setItem('rule_pil', setPil.value);
-    localStorage.setItem('rule_machine_pil', setMachinePil.value);
-    localStorage.setItem('rule_machine_cb', setMachineCb.value);
+    if(setMachinePil) localStorage.setItem('rule_machine_pil', setMachinePil.value);
+    if(setMachineCb) localStorage.setItem('rule_machine_cb', setMachineCb.value);
     localStorage.setItem('rule_panne6', setPanne6.value);
     localStorage.setItem('rule_panne12', setPanne12.value);
     rulesStatusMsg.style.display = 'block';

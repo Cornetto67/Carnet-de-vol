@@ -1,4 +1,4 @@
-const CACHE_NAME = 'carnet-de-vol-cache-v127';
+const CACHE_NAME = 'carnet-de-vol-cache-v128';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
