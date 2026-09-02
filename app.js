@@ -725,6 +725,8 @@ flightForm.addEventListener('submit', async (e) => {
         percee: perceesToSave,
         att: parseInt(document.getElementById('f_att').value) || 0,
         
+        has_tac: document.getElementById('f_has_tac').checked,
+        has_panne: document.getElementById('f_has_panne').checked,
         seance_type: document.getElementById('f_seance').value,
         remarques: document.getElementById('f_remarques').value,
         
@@ -799,6 +801,8 @@ window.editFlightAction = function(id) {
     
     document.getElementById('f_att').value = flight.att || '';
     
+    document.getElementById('f_has_tac').checked = flight.has_tac || false;
+    document.getElementById('f_has_panne').checked = flight.has_panne || false;
     document.getElementById('f_seance').value = flight.seance_type || '';
     document.getElementById('f_remarques').value = flight.remarques || '';
     

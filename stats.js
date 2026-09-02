@@ -21,11 +21,12 @@ function renderCompetences() {
     if (!envGrid || !machinesGrid) return;
     
     // 1. ENVIRONNEMENTS
-    let maxDates = { VAV: null, VN: null, SIL: null, VTN: null, VSV: null };
+    let maxDates = { VAV: null, TAC: null, VN: null, SIL: null, VTN: null, VSV: null };
     
     allFlightsData.forEach(f => {
         if (!f.date) return;
         if (f.j >= 0.1 && (!maxDates.VAV || f.date > maxDates.VAV)) maxDates.VAV = f.date;
+        if (f.has_tac && f.j >= 0.1 && (!maxDates.TAC || f.date > maxDates.TAC)) maxDates.TAC = f.date;
         if (f.n >= 0.1 && (!maxDates.VN || f.date > maxDates.VN)) maxDates.VN = f.date;
         if (f.sil >= 0.1 && (!maxDates.SIL || f.date > maxDates.SIL)) maxDates.SIL = f.date;
         if (f.vtn >= 0.1 && (!maxDates.VTN || f.date > maxDates.VTN)) maxDates.VTN = f.date;
@@ -33,7 +34,7 @@ function renderCompetences() {
     });
 
     envGrid.innerHTML = '';
-    const envs = ['VAV', 'VN', 'SIL', 'VTN', 'VSV'];
+    const envs = ['VAV', 'TAC', 'VN', 'SIL', 'VTN', 'VSV'];
     envs.forEach(env => {
         const lastDate = maxDates[env];
         const days = lastDate ? calculateDaysDifference(lastDate) : Infinity;
@@ -111,7 +112,7 @@ function renderCompetences() {
         
         // Pannes
         let seance = (f.seance_type || '').toUpperCase();
-        let isPanne = seance.includes('PANNE') || seance.includes('PU');
+        let isPanne = f.has_panne === true || seance.includes('PANNE') || seance.includes('PU');
         
         if (isPanne) {
             // Pannes 6 mois (Réel ou Simu Dédié)
