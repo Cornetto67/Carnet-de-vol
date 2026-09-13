@@ -232,16 +232,116 @@ function generateMonthlyReport(year, monthStr, monthName) {
                 <td rowspan="2" class="label-cell">TAG</td>
                 <td class="label-cell">Jour</td>
                 <td class="label-cell"><span style="color:red">Nuit</span></td>
-                <td colspan="5" rowspan="2" style="background:#555"></td>
-                <td colspan="3" rowspan="2" style="text-align: center; vertical-align: middle;">Certifié exact et conforme au registre journal des services aériens</td>
-                <td colspan="4" rowspan="2" style="height: 60px;"></td>
-                <td colspan="3" rowspan="2" style="height: 60px;"></td>
+        <div style="padding: 10px; background: white; color: black;">
+        <h2 style="text-align: center; margin-bottom: 20px;">Synthèse Mensuelle - ${monthName} ${year}</h2>
+        
+        <table class="excel-table" style="width: 100%; text-align: center; margin-bottom: 20px;">
+            <tr class="header-row">
+                <th style="text-align: left; padding: 5px; background: #d9e1f2;">Machine</th>
+                <th style="background: #d9e1f2;">Jour</th>
+                <th style="background: #d9e1f2;"><span style="color:red">Nuit</span></th>
+                <th style="background: #d9e1f2;"><span style="color:red">dont JVN</span></th>
+                <th style="background: #d9e1f2;"><span style="color:green">dont VTN</span></th>
+                <th style="background: #d9e1f2;">TOTAL</th>
+                <th style="background: #d9e1f2;">dont ME</th>
+                <th style="background: #d9e1f2;">OPEX</th>
+            </tr>
+    `;
+
+    machinesMap.forEach((d, t) => {
+        let safeT = t.replace(/[^a-zA-Z0-9]/g, '');
+        html += `
+            <tr>
+                <td style="text-align: left; font-weight: bold;">${t}</td>
+                <td>${formatHour(d.j)}</td>
+                <td><span style="color:red">${formatHour(d.n)}</span></td>
+                <td><span style="color:red">${formatHour(d.jvn)}</span></td>
+                <td><span style="color:green">${formatHour(d.vtn)}</span></td>
+                <td style="font-weight: bold;">${formatHour(d.total)}</td>
+                <td>${formatHour(d.me)}</td>
+                <td contenteditable="true" class="editable-cell" data-save-key="${sk('opex_m_'+safeT)}">${getSavedCell(sk('opex_m_'+safeT))}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+            <tr class="total-row" style="background: #f0f0f0;">
+                <td style="text-align: left; font-weight: bold;">TOTAL VOLS</td>
+                <td>${formatHour(mJour)}</td>
+                <td><span style="color:red">${formatHour(mNuit)}</span></td>
+                <td><span style="color:red">${formatHour(mJVN)}</span></td>
+                <td><span style="color:green">${formatHour(mVTN)}</span></td>
+                <td style="font-weight: bold;">${formatHour(mTotal)}</td>
+                <td>${formatHour(mME)}</td>
+                <td style="background: #555"></td>
             </tr>
             <tr>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('tag_j')}">${getSavedCell(sk('tag_j'), '0,0')}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('tag_n')}"><span style="color:red">${getSavedCell(sk('tag_n'), '0,0')}</span></td>
+                <td style="text-align: left; font-weight: bold;">SIMULATEURS</td>
+                <td colspan="7" style="font-weight: bold; text-align: left; padding-left: 20px;">${formatHour(totalSimu)} h</td>
             </tr>
         </table>
+    `;
+
+    html += `
+        <h3 style="margin-bottom: 10px;">Cumul Annuel (depuis le 1er Janvier ${year})</h3>
+        <table class="excel-table" style="width: 100%; text-align: center; margin-bottom: 30px;">
+            <tr class="header-row">
+                <th style="text-align: left; padding: 5px; background: #fce4d6;">Machine</th>
+                <th style="background: #fce4d6;">Jour</th>
+                <th style="background: #fce4d6;"><span style="color:red">Nuit</span></th>
+                <th style="background: #fce4d6;"><span style="color:red">dont JVN</span></th>
+                <th style="background: #fce4d6;"><span style="color:green">dont VTN</span></th>
+                <th style="background: #fce4d6;">TOTAL</th>
+                <th style="background: #fce4d6;">dont ME</th>
+                <th style="background: #fce4d6;">OPEX</th>
+            </tr>
+    `;
+    
+    yMachinesMap.forEach((d, t) => {
+        let safeT = t.replace(/[^a-zA-Z0-9]/g, '');
+        html += `
+            <tr>
+                <td style="text-align: left; font-weight: bold;">${t}</td>
+                <td>${formatHour(d.j)}</td>
+                <td><span style="color:red">${formatHour(d.n)}</span></td>
+                <td><span style="color:red">${formatHour(d.jvn)}</span></td>
+                <td><span style="color:green">${formatHour(d.vtn)}</span></td>
+                <td style="font-weight: bold;">${formatHour(d.total)}</td>
+                <td>${formatHour(d.me)}</td>
+                <td contenteditable="true" class="editable-cell" data-save-key="${sk('opex_y_'+safeT)}">${getSavedCell(sk('opex_y_'+safeT))}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+            <tr class="total-row" style="background: #f0f0f0;">
+                <td style="text-align: left; font-weight: bold;">TOTAL VOLS</td>
+                <td>${formatHour(yJour)}</td>
+                <td><span style="color:red">${formatHour(yNuit)}</span></td>
+                <td><span style="color:red">${formatHour(yJVN)}</span></td>
+                <td><span style="color:green">${formatHour(yVTN)}</span></td>
+                <td style="font-weight: bold;">${formatHour(yTotal)}</td>
+                <td>${formatHour(yME)}</td>
+                <td style="background: #555"></td>
+            </tr>
+            <tr>
+                <td style="text-align: left; font-weight: bold;">SIMULATEURS</td>
+                <td colspan="7" style="font-weight: bold; text-align: left; padding-left: 20px;">${formatHour(yTotalSimu)} h</td>
+            </tr>
+        </table>
+    `;
+
+    html += `
+            <table style="width: 100%; margin-top: 30px; border: none;">
+                <tr>
+                    <td style="width: 50%; text-align: center; font-weight: bold; padding: 20px; border: none;">L'intéressé</td>
+                    <td style="width: 50%; text-align: center; font-weight: bold; padding: 20px; border: none;">Le commandant d'unité</td>
+                </tr>
+                <tr>
+                    <td style="height: 80px; border: none;"></td>
+                    <td style="height: 80px; border: none;"></td>
+                </tr>
+            </table>
         </div>
     `;
 
