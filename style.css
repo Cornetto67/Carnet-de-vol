@@ -884,3 +884,10 @@ input:focus, select:focus {
     0%, 80%, 100% { transform: scale(0); }
     40% { transform: scale(1); }
 }
+
+@media (max-width: 600px) {
+    .form-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+}
