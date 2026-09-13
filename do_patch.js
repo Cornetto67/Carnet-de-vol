@@ -11,6 +11,28 @@ if (start === -1 || end === -1) {
 }
 
 const newFunc = `function generateMonthlyReport(year, monthStr, monthName) {
+    const config = typeof getDbConfig === 'function' ? getDbConfig() : null;
+    const isFlightSimu = (f) => {
+        if (f.seance_type && f.seance_type.toUpperCase().includes('SIMU')) return true;
+        let type = (f.aircraft_type || '').trim().toUpperCase();
+        if (type.endsWith(' SIMU') || type === 'SIMULATEUR' || type === 'EPSA' || type === 'EDITH') return true;
+        if (config) {
+            if (f.aircraft_num) {
+                const m = config.machines.find(x => x.num === f.aircraft_num);
+                if (m && m.is_simu) return true;
+            }
+            const m = config.machines.find(x => (x.type||'').trim().toUpperCase() === type);
+            if (m && m.is_simu) return true;
+        }
+        return false;
+    };
+
+    const normalizeType = (f) => {
+        let type = (f.aircraft_type || 'INCONNU').trim().toUpperCase();
+        if (type.startsWith('SA342')) return 'SA342';
+        return type;
+    };
+
     const monthPrefix = \`\${year}-\${monthStr}\`;
     const flightsMonth = allFlightsData.filter(f => f.date && f.date.startsWith(monthPrefix));
     
@@ -25,10 +47,10 @@ const newFunc = `function generateMonthlyReport(year, monthStr, monthName) {
         const jvn = Math.max(0, n - vtn);
         const me = !isPilot(f.role) ? (j+n) : 0;
         
-        if (f.seance_type && f.seance_type.toUpperCase().includes('SIMU')) {
+        if (isFlightSimu(f)) {
             totalSimu += (j+n);
         } else {
-            let t = (f.aircraft_type || 'INCONNU').trim().toUpperCase();
+            let t = normalizeType(f);
             if (!machinesMap.has(t)) {
                 machinesMap.set(t, { j:0, n:0, jvn:0, vtn:0, total:0, me:0 });
             }
@@ -61,10 +83,10 @@ const newFunc = `function generateMonthlyReport(year, monthStr, monthName) {
         const jvn = Math.max(0, n - vtn);
         const me = !isPilot(f.role) ? (j+n) : 0;
         
-        if (f.seance_type && f.seance_type.toUpperCase().includes('SIMU')) {
+        if (isFlightSimu(f)) {
             yTotalSimu += (j+n);
         } else {
-            let t = (f.aircraft_type || 'INCONNU').trim().toUpperCase();
+            let t = normalizeType(f);
             if (!yMachinesMap.has(t)) {
                 yMachinesMap.set(t, { j:0, n:0, jvn:0, vtn:0, total:0, me:0 });
             }
@@ -104,7 +126,9 @@ const newFunc = `function generateMonthlyReport(year, monthStr, monthName) {
             </tr>
     \`;
 
-    machinesMap.forEach((d, t) => {
+    // Sort machines for consistent rendering
+    Array.from(machinesMap.keys()).sort().forEach(t => {
+        let d = machinesMap.get(t);
         let safeT = t.replace(/[^a-zA-Z0-9]/g, '');
         html += \`
             <tr>
@@ -122,7 +146,7 @@ const newFunc = `function generateMonthlyReport(year, monthStr, monthName) {
     
     html += \`
             <tr class="total-row" style="background: #f0f0f0;">
-                <td style="text-align: left; font-weight: bold;">TOTAL VOLS</td>
+                <td style="text-align: left; font-weight: bold;">TOTAL VOLS (Exclu Simu)</td>
                 <td>\${formatHour(mJour)}</td>
                 <td><span style="color:red">\${formatHour(mNuit)}</span></td>
                 <td><span style="color:red">\${formatHour(mJVN)}</span></td>
@@ -153,7 +177,8 @@ const newFunc = `function generateMonthlyReport(year, monthStr, monthName) {
             </tr>
     \`;
     
-    yMachinesMap.forEach((d, t) => {
+    Array.from(yMachinesMap.keys()).sort().forEach(t => {
+        let d = yMachinesMap.get(t);
         let safeT = t.replace(/[^a-zA-Z0-9]/g, '');
         html += \`
             <tr>
@@ -171,7 +196,7 @@ const newFunc = `function generateMonthlyReport(year, monthStr, monthName) {
     
     html += \`
             <tr class="total-row" style="background: #f0f0f0;">
-                <td style="text-align: left; font-weight: bold;">TOTAL VOLS</td>
+                <td style="text-align: left; font-weight: bold;">TOTAL VOLS (Exclu Simu)</td>
                 <td>\${formatHour(yJour)}</td>
                 <td><span style="color:red">\${formatHour(yNuit)}</span></td>
                 <td><span style="color:red">\${formatHour(yJVN)}</span></td>
@@ -203,7 +228,7 @@ const newFunc = `function generateMonthlyReport(year, monthStr, monthName) {
 
     document.getElementById('reportContent').innerHTML = html;
     document.getElementById('reportPreviewContainer').style.display = 'block';
-    currentEmailBody = \`Bonjour,\\n\\nVeuillez trouver ci-joint ma clôture mensuelle pour \${monthName} \${year}.\\n\\nTotal du mois: \${formatHour(mTotal)}h (dont J: \${formatHour(mJour)} / N: \${formatHour(mNuit)})\\nCumul annuel: \${formatHour(yTotal)}h\\n\\nCordialement,\`;
+    currentEmailBody = \`Bonjour,\\n\\nVeuillez trouver ci-joint ma clôture mensuelle pour \${monthName} \${year}.\\n\\nTotal vols du mois: \${formatHour(mTotal)}h (dont J: \${formatHour(mJour)} / N: \${formatHour(mNuit)})\\nSimulateurs du mois: \${formatHour(totalSimu)}h\\n\\nCumul annuel vols: \${formatHour(yTotal)}h\\n\\nCordialement,\`;
 }
 
 `;
