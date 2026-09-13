@@ -78,160 +78,83 @@ const isPilot = (role) => {
 const formatHour = (h) => (h && h > 0) ? h.toFixed(1) : '0,0';
 
 function generateMonthlyReport(year, monthStr, monthName) {
-    // Calculs du mois
     const monthPrefix = `${year}-${monthStr}`;
     const flightsMonth = allFlightsData.filter(f => f.date && f.date.startsWith(monthPrefix));
     
-    let mJour=0, mNuit=0, mJVN=0, mVTN=0, mVSV=0;
-    let mEC120_J=0, mEC120_N=0;
-    let mSimuEPSA=0, mSimuEDITH=0;
-    let mTotal=0, mME=0;
+    const machinesMap = new Map();
+    let totalSimu = 0;
+    let mJour=0, mNuit=0, mJVN=0, mVTN=0, mTotal=0, mME=0;
     
     flightsMonth.forEach(f => {
         const j = f.j || 0;
         const n = f.n || 0;
         const vtn = f.vtn || 0;
-        const vsv = f.vsv || 0;
+        const jvn = Math.max(0, n - vtn);
+        const me = !isPilot(f.role) ? (j+n) : 0;
         
-        mJour += j;
-        mNuit += n;
-        mVTN += vtn;
-        mVSV += vsv;
-        // JVN approximation (nuit sans vtn)
-        mJVN += Math.max(0, n - vtn);
-        mTotal += (j+n);
-        
-        if (!isPilot(f.role)) mME += (j+n);
-        
-        if (f.aircraft_type && f.aircraft_type.toUpperCase().includes('EC120')) {
-            mEC120_J += j;
-            mEC120_N += n;
-        }
         if (f.seance_type && f.seance_type.toUpperCase().includes('SIMU')) {
-            if (f.aircraft_type && f.aircraft_type.toUpperCase().includes('EDITH')) mSimuEDITH += (j+n);
-            else mSimuEPSA += (j+n);
+            totalSimu += (j+n);
+        } else {
+            let t = (f.aircraft_type || 'INCONNU').trim().toUpperCase();
+            if (!machinesMap.has(t)) {
+                machinesMap.set(t, { j:0, n:0, jvn:0, vtn:0, total:0, me:0 });
+            }
+            let d = machinesMap.get(t);
+            d.j += j;
+            d.n += n;
+            d.jvn += jvn;
+            d.vtn += vtn;
+            d.total += (j+n);
+            d.me += me;
+            
+            mJour += j;
+            mNuit += n;
+            mJVN += jvn;
+            mVTN += vtn;
+            mTotal += (j+n);
+            mME += me;
         }
     });
 
-    // Calculs Année (Cumul du 1er janvier jusqu'à la fin de ce mois)
     const flightsYear = allFlightsData.filter(f => f.date && f.date.startsWith(year) && f.date <= `${year}-${monthStr}-31`);
-    
-    let yJour=0, yNuit=0, yJVN=0, yVTN=0;
-    let yEC120_J=0, yEC120_N=0;
-    let ySimuEPSA=0, ySimuEDITH=0;
-    let yTotal=0, yME=0;
+    const yMachinesMap = new Map();
+    let yTotalSimu = 0;
+    let yJour=0, yNuit=0, yJVN=0, yVTN=0, yTotal=0, yME=0;
     
     flightsYear.forEach(f => {
         const j = f.j || 0;
         const n = f.n || 0;
         const vtn = f.vtn || 0;
+        const jvn = Math.max(0, n - vtn);
+        const me = !isPilot(f.role) ? (j+n) : 0;
         
-        yJour += j;
-        yNuit += n;
-        yVTN += vtn;
-        yJVN += Math.max(0, n - vtn);
-        yTotal += (j+n);
-        
-        if (!isPilot(f.role)) yME += (j+n);
-        
-        if (f.aircraft_type && f.aircraft_type.toUpperCase().includes('EC120')) {
-            yEC120_J += j;
-            yEC120_N += n;
-        }
         if (f.seance_type && f.seance_type.toUpperCase().includes('SIMU')) {
-            if (f.aircraft_type && f.aircraft_type.toUpperCase().includes('EDITH')) ySimuEDITH += (j+n);
-            else ySimuEPSA += (j+n);
+            yTotalSimu += (j+n);
+        } else {
+            let t = (f.aircraft_type || 'INCONNU').trim().toUpperCase();
+            if (!yMachinesMap.has(t)) {
+                yMachinesMap.set(t, { j:0, n:0, jvn:0, vtn:0, total:0, me:0 });
+            }
+            let d = yMachinesMap.get(t);
+            d.j += j;
+            d.n += n;
+            d.jvn += jvn;
+            d.vtn += vtn;
+            d.total += (j+n);
+            d.me += me;
+            
+            yJour += j;
+            yNuit += n;
+            yJVN += jvn;
+            yVTN += vtn;
+            yTotal += (j+n);
+            yME += me;
         }
     });
 
     const sk = (key) => `cloture_mois_${key}`;
 
     let html = `
-        <div style="padding: 10px; background: white;">
-        <table class="excel-table">
-            <tr class="header-row">
-                <th colspan="3">${monthName}</th>
-                <th colspan="3">${year}</th>
-                <th colspan="2">VI</th>
-                <th colspan="3">EC120</th>
-                <th>OPEX</th>
-                <th colspan="2">TOTAL MOIS</th>
-                <th colspan="2">SIMU</th>
-                <th colspan="2">HDV 12 GAZL</th>
-            </tr>
-            <tr class="sub-header-row">
-                <th style="background:#fff"></th>
-                <th>Jour</th>
-                <th>Nuit</th>
-                <th><span style="color:red">dont JVN</span></th>
-                <th><span style="color:green">dont VTN</span></th>
-                <th>J+N GZL</th>
-                <th>VOL</th>
-                <th>SIMU</th>
-                <th>Jour</th>
-                <th><span style="color:red">Nuit</span></th>
-                <th>J+N</th>
-                <th>J+N</th>
-                <th>J+N</th>
-                <th>dont ME</th>
-                <th>EPSA / FNPT</th>
-                <th>EDITH</th>
-                <th>Jour</th>
-                <th><span style="color:red">Nuit</span></th>
-            </tr>
-            <tr>
-                <td class="label-cell">Mois</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_jour')}">${formatHour(mJour)}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_nuit')}"><span style="color:red">${formatHour(mNuit)}</span></td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_jvn')}"><span style="color:red">${formatHour(mJVN)}</span></td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_vtn')}"><span style="color:green">${formatHour(mVTN)}</span></td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_jngzl')}">${formatHour(mJour+mNuit)}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_vi_vol')}">${getSavedCell(sk('m_vi_vol'), '0,0')}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_vi_simu')}">${getSavedCell(sk('m_vi_simu'), '0,0')}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_ec120_j')}">${formatHour(mEC120_J)}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_ec120_n')}"><span style="color:red">${formatHour(mEC120_N)}</span></td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_ec120_tot')}">${formatHour(mEC120_J+mEC120_N)}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_opex')}">${getSavedCell(sk('m_opex'))}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_tot')}">${formatHour(mTotal)}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_me')}">${formatHour(mME)}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_epsa')}"><span style="color:blue">${formatHour(mSimuEPSA)}</span></td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_edith')}"><span style="color:blue">${formatHour(mSimuEDITH)}</span></td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_gaz_j')}">${getSavedCell(sk('m_gaz_j'))}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('m_gaz_n')}"><span style="color:red">${getSavedCell(sk('m_gaz_n'))}</span></td>
-            </tr>
-            <tr class="total-row">
-                <td class="label-cell">Année</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_jour')}">${formatHour(yJour)}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_nuit')}"><span style="color:red">${formatHour(yNuit)}</span></td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_jvn')}"><span style="color:red">${formatHour(yJVN)}</span></td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_vtn')}"><span style="color:green">${formatHour(yVTN)}</span></td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_jngzl')}">${formatHour(yJour+yNuit)}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_vi_vol')}">${getSavedCell(sk('y_vi_vol'), '0,0')}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_vi_simu')}">${getSavedCell(sk('y_vi_simu'), '0,0')}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_ec120_j')}">${formatHour(yEC120_J)}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_ec120_n')}"><span style="color:red">${formatHour(yEC120_N)}</span></td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_ec120_tot')}">${formatHour(yEC120_J+yEC120_N)}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_opex')}">${getSavedCell(sk('y_opex'))}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_tot')}">${formatHour(yTotal)}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_me')}">${formatHour(yME)}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_epsa')}"><span style="color:blue">${formatHour(ySimuEPSA)}</span></td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_edith')}"><span style="color:blue">${formatHour(ySimuEDITH)}</span></td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_gaz_j')}">${getSavedCell(sk('y_gaz_j'))}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('y_gaz_n')}"><span style="color:red">${getSavedCell(sk('y_gaz_n'))}</span></td>
-            </tr>
-            <tr>
-                <td colspan="4" class="label-cell">VI depuis le :</td>
-                <td colspan="2" contenteditable="true" class="editable-cell" data-save-key="${sk('vi_date')}">${getSavedCell(sk('vi_date'), '01/01/2025')}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('vi_vol_depuis')}">${getSavedCell(sk('vi_vol_depuis'))}</td>
-                <td contenteditable="true" class="editable-cell" data-save-key="${sk('vi_simu_depuis')}">${getSavedCell(sk('vi_simu_depuis'))}</td>
-                <td colspan="3" style="background:#555"></td>
-                <td colspan="4" style="text-align: center; font-weight: bold; padding-top: 15px;">L'intéressé</td>
-                <td colspan="3" style="text-align: center; font-weight: bold; padding-top: 15px;">Le commandant d'unité</td>
-            </tr>
-            <tr>
-                <td rowspan="2" class="label-cell">TAG</td>
-                <td class="label-cell">Jour</td>
-                <td class="label-cell"><span style="color:red">Nuit</span></td>
         <div style="padding: 10px; background: white; color: black;">
         <h2 style="text-align: center; margin-bottom: 20px;">Synthèse Mensuelle - ${monthName} ${year}</h2>
         
@@ -283,7 +206,7 @@ function generateMonthlyReport(year, monthStr, monthName) {
     `;
 
     html += `
-        <h3 style="margin-bottom: 10px;">Cumul Annuel (depuis le 1er Janvier ${year})</h3>
+        <h3 style="margin-bottom: 10px; color: black;">Cumul Annuel (depuis le 1er Janvier ${year})</h3>
         <table class="excel-table" style="width: 100%; text-align: center; margin-bottom: 30px;">
             <tr class="header-row">
                 <th style="text-align: left; padding: 5px; background: #fce4d6;">Machine</th>
@@ -332,7 +255,7 @@ function generateMonthlyReport(year, monthStr, monthName) {
     `;
 
     html += `
-            <table style="width: 100%; margin-top: 30px; border: none;">
+            <table style="width: 100%; margin-top: 30px; border: none; color: black;">
                 <tr>
                     <td style="width: 50%; text-align: center; font-weight: bold; padding: 20px; border: none;">L'intéressé</td>
                     <td style="width: 50%; text-align: center; font-weight: bold; padding: 20px; border: none;">Le commandant d'unité</td>
@@ -347,7 +270,6 @@ function generateMonthlyReport(year, monthStr, monthName) {
 
     document.getElementById('reportContent').innerHTML = html;
     document.getElementById('reportPreviewContainer').style.display = 'block';
-
     currentEmailBody = `Bonjour,\n\nVeuillez trouver ci-joint ma clôture mensuelle pour ${monthName} ${year}.\n\nTotal du mois: ${formatHour(mTotal)}h (dont J: ${formatHour(mJour)} / N: ${formatHour(mNuit)})\nCumul annuel: ${formatHour(yTotal)}h\n\nCordialement,`;
 }
 

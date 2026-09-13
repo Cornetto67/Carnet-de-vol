@@ -2,7 +2,13 @@ const fs = require('fs');
 
 let js = fs.readFileSync('cloture.js', 'utf8');
 
-const regex = /function generateMonthlyReport\(year, monthStr, monthName\) \{[\s\S]*?currentEmailBody = [\s\S]*?;\n\}/m;
+const start = js.indexOf('function generateMonthlyReport(year, monthStr, monthName)');
+const end = js.indexOf('function generateAnnualReport(year)');
+
+if (start === -1 || end === -1) {
+    console.log("Could not find functions");
+    process.exit(1);
+}
 
 const newFunc = `function generateMonthlyReport(year, monthStr, monthName) {
     const monthPrefix = \`\${year}-\${monthStr}\`;
@@ -198,12 +204,10 @@ const newFunc = `function generateMonthlyReport(year, monthStr, monthName) {
     document.getElementById('reportContent').innerHTML = html;
     document.getElementById('reportPreviewContainer').style.display = 'block';
     currentEmailBody = \`Bonjour,\\n\\nVeuillez trouver ci-joint ma clôture mensuelle pour \${monthName} \${year}.\\n\\nTotal du mois: \${formatHour(mTotal)}h (dont J: \${formatHour(mJour)} / N: \${formatHour(mNuit)})\\nCumul annuel: \${formatHour(yTotal)}h\\n\\nCordialement,\`;
-}`;
-
-if (regex.test(js)) {
-    js = js.replace(regex, newFunc);
-    fs.writeFileSync('cloture.js', js);
-    console.log('Replaced successfully');
-} else {
-    console.log('Regex did not match');
 }
+
+`;
+
+js = js.substring(0, start) + newFunc + js.substring(end);
+fs.writeFileSync('cloture.js', js);
+console.log('Replaced');
